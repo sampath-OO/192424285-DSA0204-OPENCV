@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Road Safety Analyzer — Computer Vision System</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Google Fonts for crisp modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- 1. Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-badge">CV</span>
+                <span class="brand-title">Road Safety AI</span>
+            </div>
+            <div class="nav-links">
+                <a href="#home" class="nav-item active" id="nav-home-btn">Home</a>
+                <a href="#about" class="nav-item" id="nav-about-btn">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="main-content" id="home">
+
+        <!-- 2. Header Section -->
+        <header class="hero-header">
+            <h1 class="hero-title">AI Road Safety Analyzer</h1>
+            <p class="hero-subtitle">
+                Upload a road image and detect vehicles, pedestrians, road signs and road markings using Computer Vision.
+            </p>
+        </header>
+
+        <!-- 3. Image Upload Section -->
+        <section class="upload-section">
+            <div class="card upload-card">
+                <div class="card-header">
+                    <h2>Upload Road Image</h2>
+                    <span class="format-badge">Supported: JPG, JPEG, PNG</span>
+                </div>
+
+                <!-- Drag & Drop Zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="file-input" accept=".jpg,.jpeg,.png" class="file-input-hidden">
+                    
+                    <div class="drop-zone-prompt" id="drop-prompt">
+                        <div class="upload-icon-circle">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <p class="drop-title">Drag & drop your road photo here</p>
+                        <p class="drop-sub">or click the button below to browse</p>
+                        <button type="button" class="btn btn-secondary" id="choose-btn">Choose Image</button>
+                    </div>
+
+                    <!-- Image Preview Area (Hidden initially) -->
+                    <div class="preview-container" id="preview-container" style="display: none;">
+                        <img id="preview-image" src="" alt="Uploaded road preview" class="preview-img">
+                        <div class="preview-overlay-info">
+                            <span id="preview-filename" class="preview-tag">image.jpg</span>
+                            <button type="button" class="btn btn-sm btn-outline" id="change-image-btn">Change Image</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sample Images Picker for Instant 1-Click Demo -->
+                <div class="sample-picker-bar">
+                    <span class="sample-label">⚡ Quick Test Samples:</span>
+                    <div class="sample-buttons">
+                        <button type="button" class="sample-btn" data-sample="sample1_urban_traffic.jpg">Urban Traffic</button>
+                        <button type="button" class="sample-btn" data-sample="sample2_pedestrians.jpg">Pedestrians</button>
+                        <button type="button" class="sample-btn" data-sample="sample3_highway_lanes.jpg">Highway Lanes</button>
+                        <button type="button" class="sample-btn" data-sample="sample4_stop_junction.jpg">Stop Junction</button>
+                    </div>
+                </div>
+
+                <!-- Analyze Button -->
+                <div class="action-footer">
+                    <button type="button" class="btn btn-primary btn-large" id="analyze-btn" disabled>
+                        <span id="btn-text">Analyze Image</span>
+                        <span id="btn-spinner" class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+
+                <!-- User Message / Error Alert Box -->
+                <div id="alert-box" class="alert-box" style="display: none;"></div>
+            </div>
+        </section>
+
+        <!-- 4. Results Section (Shown after analysis) -->
+        <section class="results-section" id="results-section" style="display: none;">
+            
+            <!-- Safety Status Banner -->
+            <div class="safety-banner" id="safety-banner">
+                <div class="safety-badge" id="safety-badge">SAFE</div>
+                <div class="safety-info">
+                    <h3 class="safety-headline" id="safety-headline">SAFE – Normal Roadway Conditions</h3>
+                    <ul class="safety-reasons" id="safety-reasons">
+                        <li>No immediate pedestrian hazard detected.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Pedestrian Safety Alert Banner (if danger detected) -->
+            <div class="pedestrian-alert-banner" id="pedestrian-alert-banner" style="display: none;">
+                <div class="ped-alert-icon">⚠</div>
+                <div class="ped-alert-content">
+                    <strong class="ped-alert-title">Pedestrian Safety Alert</strong>
+                    <p id="ped-alert-msg" class="ped-alert-text">Pedestrian detected near active road traffic area!</p>
+                </div>
+            </div>
+
+            <!-- Image Comparison View -->
+            <div class="card image-comparison-card">
+                <div class="comparison-header">
+                    <h2>Visual Analysis Comparison</h2>
+                    <span class="sub-header-tag">OpenCV Lane Lines + YOLOv8 Bounding Boxes</span>
+                </div>
+                
+                <div class="comparison-grid">
+                    <!-- Original Image Card -->
+                    <div class="image-view-box">
+                        <div class="view-tag">Original Image</div>
+                        <div class="img-wrapper">
+                            <img id="result-original-img" src="" alt="Original road photograph">
+                        </div>
+                    </div>
+
+                    <!-- Analyzed Image Card -->
+                    <div class="image-view-box analyzed-box">
+                        <div class="view-tag analyzed-tag">Analyzed Image</div>
+                        <div class="img-wrapper">
+                            <img id="result-analyzed-img" src="" alt="Analyzed road result with annotations">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detections Statistics Table -->
+            <div class="stats-grid">
+                <div class="card stat-table-card">
+                    <h3 class="section-title">Detection Summary</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Detection Element</th>
+                                <th class="text-right">Status / Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="table-cell-with-dot">
+                                        <span class="dot dot-blue"></span> Vehicles (Cars, Buses, Trucks)
+                                    </div>
+                                </td>
+                                <td class="text-right font-bold" id="stat-vehicles">0</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="table-cell-with-dot">
+                                        <span class="dot dot-orange"></span> Pedestrians (Persons)
+                                    </div>
+                                </td>
+                                <td class="text-right font-bold" id="stat-pedestrians">0</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="table-cell-with-dot">
+                                        <span class="dot dot-purple"></span> Road Signs & Signals
+                                    </div>
+                                </td>
+                                <td class="text-right font-bold" id="stat-signs">0</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="table-cell-with-dot">
+                                        <span class="dot dot-green"></span> Road Markings / Lanes
+                                    </div>
+                                </td>
+                                <td class="text-right font-bold" id="stat-markings">Detected</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="table-cell-with-dot">
+                                        <span class="dot dot-gray"></span> Camera Calibration
+                                    </div>
+                                </td>
+                                <td class="text-right font-bold" id="stat-calibration">Applied</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Detail Cards: Signs & Performance -->
+                <div class="detail-cards-col">
+                    
+                    <!-- Road Sign Recognition Card -->
+                    <div class="card mini-card">
+                        <h4 class="mini-card-title">Road Sign Recognition</h4>
+                        <div id="road-sign-content" class="sign-result-body">
+                            <p class="text-muted">No clearly visible road sign detected.</p>
+                        </div>
+                    </div>
+
+                    <!-- Occlusion Consideration Card -->
+                    <div class="card mini-card">
+                        <h4 class="mini-card-title">Occlusion Consideration</h4>
+                        <div id="occlusion-content" class="sign-result-body">
+                            <p class="text-muted">No overlapping bounding boxes detected.</p>
+                        </div>
+                    </div>
+
+                    <!-- Performance Info -->
+                    <div class="card mini-card perf-card">
+                        <h4 class="mini-card-title">Performance Information</h4>
+                        <div class="perf-row">
+                            <div class="perf-item">
+                                <span class="perf-label">Processing Time</span>
+                                <span class="perf-val" id="perf-time">0.32 s</span>
+                            </div>
+                            <div class="perf-item">
+                                <span class="perf-label">Objects Detected</span>
+                                <span class="perf-val" id="perf-objects">5</span>
+                            </div>
+                            <div class="perf-item">
+                                <span class="perf-label">Model Architecture</span>
+                                <span class="perf-val">YOLOv8n (CPU)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 5. Academic Relevance & About Section -->
+        <section class="about-section" id="about">
+            <div class="card about-card">
+                <div class="card-header">
+                    <h2>Academic & Technical Overview</h2>
+                    <span class="format-badge">B.Tech Computer Vision with OpenCV</span>
+                </div>
+                
+                <div class="about-grid">
+                    <div class="about-topic">
+                        <h3>1. Image Preprocessing & Camera Calibration</h3>
+                        <p>
+                            Images are decoded with <code>cv2.imread</code> and normalized. A pinhole intrinsic matrix \(K\) with radial distortion coefficients (\(k_1, k_2\)) is applied via <code>cv2.undistort</code>. If calibration parameters are absent, safe fallback maintains pipeline stability.
+                        </p>
+                    </div>
+
+                    <div class="about-topic">
+                        <h3>2. Road Markings & Lane Detection</h3>
+                        <p>
+                            Implemented using classical OpenCV techniques: Grayscale conversion \(\rightarrow\) Gaussian Blur \((5\times 5)\) \(\rightarrow\) Canny Edge Detection \((50, 150)\) \(\rightarrow\) Road Trapezoid ROI Mask \(\rightarrow\) Probabilistic Hough Line Transform (<code>cv2.HoughLinesP</code>).
+                        </p>
+                    </div>
+
+                    <div class="about-topic">
+                        <h3>3. Object & Pedestrian Detection</h3>
+                        <p>
+                            A lightweight single-stage YOLOv8 neural network detects vehicles (cars, buses, trucks, motorcycles, bicycles) and pedestrians with bounding boxes and confidence scores. Pedestrians positioned inside the roadway corridor trigger high-priority safety warnings.
+                        </p>
+                    </div>
+
+                    <div class="about-topic">
+                        <h3>4. Road Sign Recognition</h3>
+                        <p>
+                            Identifies regulatory and warning signs (Stop signs, Traffic lights, Speed limit indicators) using neural classes combined with OpenCV contour circularity and HSV color segmentation.
+                        </p>
+                    </div>
+
+                    <div class="about-topic">
+                        <h3>5. Occlusion Handling (Current vs Future)</h3>
+                        <p>
+                            <strong>Implemented:</strong> Single-frame 2D bounding box intersection over union (IoU &gt; 0.30) to detect spatial occlusion.<br>
+                            <strong>Future Extension:</strong> Temporal Kalman Filter multi-object tracking and DeepSORT re-identification across sequential video frames.
+                        </p>
+                    </div>
+
+                    <div class="about-topic">
+                        <h3>6. Video Processing & Tracking (Future Scope)</h3>
+                        <p>
+                            This prototype intentionally focuses on single-image evaluation for deterministic, reliable viva demonstrations. Multi-object tracking (MOT) and real-time RTSP video streaming represent direct future extensions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>AI Road Safety Analyzer • B.Tech Computer Vision with OpenCV Project</p>
+    </footer>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
